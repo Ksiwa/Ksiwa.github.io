@@ -1,20 +1,82 @@
 "use client";
 
 import { RoundedBox } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { type RefObject, useEffect, useRef } from "react";
 import * as THREE from "three";
 
-function DeveloperDesk() {
+const CAMERA_START = new THREE.Vector3(6.6, 2.8, 7.4);
+const CAMERA_END = new THREE.Vector3(7.8, 2.45, 3.9);
+
+const LOOK_AT_START = new THREE.Vector3(1.7, 0.25, -0.25);
+const LOOK_AT_END = new THREE.Vector3(2.45, 0.65, -0.65);
+
+type ScrollProgressRef = RefObject<number>;
+
+function CameraRig({ progressRef }: { progressRef: ScrollProgressRef }) {
+  const { camera } = useThree();
+
+  const targetPosition = useRef(new THREE.Vector3());
+  const targetLookAt = useRef(new THREE.Vector3());
+
+  useFrame((_, delta) => {
+    const progress = THREE.MathUtils.smoothstep(progressRef.current, 0, 1);
+
+    targetPosition.current.lerpVectors(CAMERA_START, CAMERA_END, progress);
+
+    targetLookAt.current.lerpVectors(LOOK_AT_START, LOOK_AT_END, progress);
+
+    const smoothing = 1 - Math.exp(-delta * 4);
+
+    camera.position.lerp(targetPosition.current, smoothing);
+    camera.lookAt(targetLookAt.current);
+  });
+
+  return null;
+}
+
+function DeveloperDesk({ progressRef }: { progressRef: ScrollProgressRef }) {
   const characterRef = useRef<THREE.Group>(null);
   const monitorMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+
+  function CameraRig({ progressRef }: { progressRef: ScrollProgressRef }) {
+    const { camera } = useThree();
+
+    const targetPosition = useRef(new THREE.Vector3());
+    const targetLookAt = useRef(new THREE.Vector3());
+
+    useFrame((_, delta) => {
+      const progress = THREE.MathUtils.smoothstep(progressRef.current, 0, 1);
+
+      targetPosition.current.lerpVectors(CAMERA_START, CAMERA_END, progress);
+
+      targetLookAt.current.lerpVectors(LOOK_AT_START, LOOK_AT_END, progress);
+
+      const smoothing = 1 - Math.exp(-delta * 4);
+
+      camera.position.lerp(targetPosition.current, smoothing);
+      camera.lookAt(targetLookAt.current);
+    });
+
+    return null;
+  }
 
   useFrame((state, delta) => {
     const character = characterRef.current;
     const monitorMaterial = monitorMaterialRef.current;
 
     if (character) {
-      const targetRotationY = -0.5 + state.pointer.x * 0.12;
+      const turnProgress = THREE.MathUtils.smoothstep(
+        progressRef.current,
+        0.28,
+        0.82,
+      );
+
+      const pointerInfluence = state.pointer.x * 0.05 * (1 - turnProgress);
+
+      const targetRotationY =
+        THREE.MathUtils.lerp(-0.9, 0.18, turnProgress) + pointerInfluence;
+
       const smoothing = 1 - Math.exp(-delta * 4);
 
       character.rotation.y = THREE.MathUtils.lerp(
@@ -24,17 +86,17 @@ function DeveloperDesk() {
       );
 
       character.position.y =
-        -0.45 + Math.sin(state.clock.elapsedTime * 1.5) * 0.015;
+        -0.42 + Math.sin(state.clock.elapsedTime * 1.5) * 0.012;
     }
 
     if (monitorMaterial) {
       monitorMaterial.emissiveIntensity =
-        1.1 + Math.sin(state.clock.elapsedTime * 1.8) * 0.15;
+        0.65 + Math.sin(state.clock.elapsedTime * 1.8) * 0.08;
     }
   });
 
   return (
-    <group position={[0, -0.2, 0]}>
+    <group position={[2.65, -0.35, -1.1]} rotation={[0, -0.12, 0]} scale={0.8}>
       {/* Floor */}
       <mesh
         receiveShadow
@@ -89,7 +151,7 @@ function DeveloperDesk() {
             ref={monitorMaterialRef}
             color="#07121c"
             emissive="#22d3ee"
-            emissiveIntensity={1.1}
+            emissiveIntensity={0.65}
             toneMapped={false}
           />
         </mesh>
@@ -120,8 +182,8 @@ function DeveloperDesk() {
       {/* Character */}
       <group
         ref={characterRef}
-        position={[-0.7, -0.45, 0.35]}
-        rotation={[0, -0.5, 0]}
+        position={[-0.5, -0.42, 0.3]}
+        rotation={[0, -0.9, 0]}
       >
         {/* Torso */}
         <mesh castShadow position={[0, 0.55, 0]}>
@@ -194,46 +256,93 @@ function DeveloperDesk() {
 }
 
 export default function HeroScene() {
+  const scrollProgressRef = useRef(0);
+
+  useEffect(() => {
+    const updateScrollProgress = () => {
+      const hero = document.getElementById("home");
+
+      if (!hero) {
+        return;
+      }
+
+      const rect = hero.getBoundingClientRect();
+      const scrollDistance = Math.max(
+        hero.offsetHeight - window.innerHeight,
+        1,
+      );
+
+      const travelledDistance = THREE.MathUtils.clamp(
+        -rect.top,
+        0,
+        scrollDistance,
+      );
+
+      scrollProgressRef.current = travelledDistance / scrollDistance;
+    };
+
+    updateScrollProgress();
+
+    window.addEventListener("scroll", updateScrollProgress, {
+      passive: true,
+    });
+
+    window.addEventListener("resize", updateScrollProgress);
+
+    return () => {
+      window.removeEventListener("scroll", updateScrollProgress);
+      window.removeEventListener("resize", updateScrollProgress);
+    };
+  }, []);
+
   return (
-    <div className="h-full w-full">
+    <div className="absolute inset-0 h-full w-full">
       <Canvas
         shadows
         dpr={[1, 1.5]}
         camera={{
-          position: [4.8, 2.5, 5.2],
-          fov: 34,
+          position: [6.6, 2.8, 7.4],
+          fov: 30,
         }}
         gl={{
           antialias: true,
           alpha: true,
         }}
       >
-        <ambientLight intensity={0.7} />
+        <ambientLight intensity={1.2} />
 
         <directionalLight
           castShadow
-          color="#d9f8ff"
-          intensity={3.2}
+          color="#e6fbff"
+          intensity={4}
           position={[4, 6, 5]}
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
         />
 
         <pointLight
-          color="#22d3ee"
+          color="#ffb36b"
           intensity={22}
-          distance={8}
-          position={[1.4, 1.3, 1.8]}
+          distance={7}
+          position={[2.2, 3, 3.6]}
         />
 
         <pointLight
-          color="#315cff"
-          intensity={15}
-          distance={7}
-          position={[-3, 1, -2]}
+          color="#22d3ee"
+          intensity={28}
+          distance={9}
+          position={[2.5, 2.2, 2.8]}
         />
 
-        <DeveloperDesk />
+        <pointLight
+          color="#8b5cf6"
+          intensity={24}
+          distance={9}
+          position={[-1.5, 2, -1.5]}
+        />
+
+        <CameraRig progressRef={scrollProgressRef} />
+        <DeveloperDesk progressRef={scrollProgressRef} />
       </Canvas>
     </div>
   );
