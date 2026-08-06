@@ -1,3 +1,5 @@
+import HeroScene from "@/components/hero-scene";
+
 export default function Home() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#050609] text-white">
@@ -85,26 +87,11 @@ export default function Home() {
             <div className="absolute left-[12%] top-1/2 h-px w-[76%] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             <div className="absolute left-1/2 top-[12%] h-[76%] w-px bg-gradient-to-b from-transparent via-white/15 to-transparent" />
 
-            <div className="relative flex h-[72%] w-[72%] items-center justify-center rounded-[3rem] border border-white/10 bg-white/[0.025] shadow-2xl backdrop-blur-sm">
-              <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-cyan-300/[0.08] via-transparent to-blue-500/[0.06]" />
+            <div className="relative h-[72%] w-[72%] overflow-hidden rounded-[3rem] border border-white/10 bg-white/[0.025] shadow-2xl backdrop-blur-sm">
+  <div className="pointer-events-none absolute inset-0 z-10 rounded-[3rem] bg-gradient-to-br from-cyan-300/[0.06] via-transparent to-blue-500/[0.08]" />
 
-              <div className="relative text-center">
-                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
-                  <span className="font-mono text-2xl text-cyan-200/60">
-                    3D
-                  </span>
-                </div>
-
-                <p className="font-mono text-xs uppercase tracking-[0.3em] text-white/35">
-                  Interactive character scene
-                </p>
-
-                <p className="mx-auto mt-4 max-w-xs text-sm leading-6 text-white/35">
-                  Working at the computer, turning toward the camera,
-                  smiling and winking as the visitor scrolls.
-                </p>
-              </div>
-            </div>
+  <HeroScene />
+</div>
 
             <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 text-center">
               <div className="mx-auto mb-3 h-10 w-px bg-gradient-to-b from-white/30 to-transparent" />
